@@ -1,6 +1,8 @@
 from PIL import Image
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+#import kagglehub
 
 def rgbToGrayscale(RGBImage):
     width, height = RGBImage.size
@@ -39,15 +41,15 @@ def load_images_from_folder(folder, size):
         if img is not None:
             grayscale_matrix = rgbToGrayscale(img)
             resized_matrix = resize_image_manual(grayscale_matrix, size[0], size[1])
-            images.append(resized_matrix)
+            images.append((img, resized_matrix))
     return images
 
 def calculate_pixel_averages(images):
-    width, height = len(images[0][0]), len(images[0])
+    width, height = len(images[0][1][0]), len(images[0][1])
     N = len(images)
     pixel_sums = [[0 for _ in range(width)] for _ in range(height)]
     
-    for img in images:
+    for _, img in images:
         for i in range(height):
             for j in range(width):
                 pixel_sums[i][j] += img[i][j]
@@ -57,7 +59,7 @@ def calculate_pixel_averages(images):
 
 def standardize_images(images, pixel_averages):
     standardized_images = []
-    for img in images:
+    for _, img in images:
         width, height = len(img[0]), len(img)
         standardized_matrix = [[0 for _ in range(width)] for _ in range(height)]
         
@@ -83,7 +85,6 @@ def hitung_kovarian(data):
     cov_matrix = np.dot(transposed_data, data) / N
     return cov_matrix
 
-
 def power_iteration(A, num_simulations=1000, tol=1e-6):
     b_k = np.random.rand(A.shape[1])
     for _ in range(num_simulations):
@@ -103,33 +104,69 @@ def calculate_svd(C, k):
         C = C - np.outer(eigenvector, eigenvector) * np.dot(eigenvector.T, np.dot(C, eigenvector))
     return np.array(eigenvectors).T
 
+def project_query_image(query_image_path, pixel_averages, Uk, image_size):
+    img = Image.open(query_image_path)
+    grayscale_matrix = rgbToGrayscale(img)
+    resized_matrix = resize_image_manual(grayscale_matrix, image_size[0], image_size[1])
+    standardized_matrix = [[resized_matrix[i][j] - pixel_averages[i][j] for j in range(image_size[0])] for i in range(image_size[1])]
+    standardized_vector = grayscale_to_1d_vector(standardized_matrix)
+    q = np.dot(standardized_vector, Uk)
+    return img, q
 
-# Load images from the dataset folder
-folder_path = r"src\backend\image\wifey"  # Replace with your dataset folder path
-image_size = (100, 100)  # Replace with the desired consistent size
+def calculate_euclidean_distances(query_vector, projected_data):
+    distances = []
+    for i, z in enumerate(projected_data):
+        distance = np.linalg.norm(query_vector - z)
+        distances.append((i, distance))
+    return distances
+
+def sort_by_distance(distances):
+    return sorted(distances, key=lambda x: x[1])
+
+folder_path = r"src\backend\image\album"
+#folder_path = kagglehub.dataset_download("slothkong/10-monkey-species")
+image_size = (64, 64)
 images = load_images_from_folder(folder_path, image_size)
 print(f"Loaded {len(images)} images.")
 
-# Calculate pixel averages
 pixel_averages = calculate_pixel_averages(images)
 print("Pixel averages calculated.")
 
-# Standardize images
 standardized_images = standardize_images(images, pixel_averages)
 print("Images standardized.")
 
-# Calculate covariance matrix
 cov_matrix = hitung_kovarian(standardized_images)
 print("Covariance matrix calculated.")
 
-# Perform SVD manually and project the data onto the top k principal components
-k = 10  # Replace with the desired number of principal components
+k = 10
 Uk = calculate_svd(cov_matrix, k)
 print("SVD calculated.")
 
-# Project the data onto the top k principal components
 Z = np.dot(standardized_images, Uk)
 print("Data projected onto top principal components.")
 
-# Print the projected data for verification
-print(Z)
+query_image_path = r"src\backend\image\ridetes.jpg" 
+query_img, q = project_query_image(query_image_path, pixel_averages, Uk, image_size)
+print("Query image projected onto principal component space.")
+
+distances = calculate_euclidean_distances(q, Z)
+print("Euclidean distances calculated.")
+
+sorted_distances = sort_by_distance(distances)
+print("Results sorted by distance.")
+
+threshold_distance = np.percentile([d for _, d in sorted_distances], 10)
+similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
+
+fig, axs = plt.subplots(1, len(similar_images_indices) + 1, figsize=(15, 6))
+axs[0].imshow(query_img)
+axs[0].set_title('Query Image')
+axs[0].axis('off')
+
+for idx, image_index in enumerate(similar_images_indices):
+    similar_image = images[image_index][0]
+    axs[idx + 1].imshow(similar_image)
+    axs[idx + 1].set_title(f'Similar Album {idx + 1}')
+    axs[idx + 1].axis('off')
+
+plt.show()
