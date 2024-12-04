@@ -189,9 +189,9 @@ def sort_by_distance(distances):
 # =====================================================================
 # Folder untuk menyimpan dataset
 # Lokasi folder kerja berdasarkan struktur Anda
-DATASET_FOLDER = "test/dataset"
-QUERY_FOLDER = "test/query"
-MAPPER_PATH = "test/mapper.json"
+#DATASET_FOLDER = "test/dataset"
+#QUERY_FOLDER = "test/query"
+#MAPPER_PATH = "test/mapper.json"
 
 # Fungsi untuk memproses query gambar dengan PCA
 def process_image_query(query_image_path, dataset_folder, image_size, k):
@@ -213,16 +213,24 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
 
     # Load dataset gambar
     images = load_images_from_folder(dataset_folder, image_size)
+    print(f"Loaded {len(images)} images.")
     pixel_averages = calculate_pixel_averages(images)
+    print("Pixel averages calculated.")
     standardized_images = standardize_images(images, pixel_averages)
+    print("Images standardized.")
     cov_matrix = hitung_kovarian(standardized_images)
+    print("Covariance matrix calculated.")
     Uk = calculate_svd(cov_matrix, k)
+    print("SVD calculated.")
     Z = np.dot(standardized_images, Uk)  # Proyeksikan dataset
+    print("Data projected onto principal components.")
 
     # Proses query image
     query_img, q = project_query_image(query_image_path, pixel_averages, Uk, image_size)
+    print("Query image projected.")
     distances = calculate_euclidean_distances(q, Z)
     sorted_distances = sort_by_distance(distances)
+    print("Distances calculated and sorted.")
 
     # Ambil hasil dengan threshold (misalnya 20% terdekat)
     threshold_distance = np.percentile([d for _, d in sorted_distances], 20)
@@ -240,3 +248,34 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     # Hitung waktu eksekusi
     execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
     return result, execution_time
+'''
+def test_process_image_query():
+    dataset_folder = r"src\backend\image\album"
+    query_image_path = r"src\backend\image\query\ridetes.jpg"
+    image_size = (64, 64)
+    k = 10
+
+    result, execution_time = process_image_query(query_image_path, dataset_folder, image_size, k)
+    print(f"Execution time: {execution_time} ms")
+    print("Results:")
+    for res in result:
+        print(res)
+
+    query_img = Image.open(query_image_path)
+    similar_images = [Image.open(os.path.join(dataset_folder, res["filename"])) for res in result]
+
+    fig, axs = plt.subplots(1, len(similar_images) + 1, figsize=(15, 6))
+    axs[0].imshow(query_img)
+    axs[0].set_title('Query Image')
+    axs[0].axis('off')
+
+    for idx, similar_image in enumerate(similar_images):
+        axs[idx + 1].imshow(similar_image)
+        axs[idx + 1].set_title(f'Similar Image {idx + 1}')
+        axs[idx + 1].axis('off')
+
+    plt.show()
+
+# Run the test function
+test_process_image_query()
+'''
