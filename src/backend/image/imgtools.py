@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 # Fungsi untuk mengubah gambar RGB menjadi grayscale
 # Rumus digunakan: I(x, y) = 0.2989*R(x, y) + 0.587*G(x, y) + 0.114*B(x, y)
+'''
 def rgbToGrayscale(RGBImage):
     width, height = RGBImage.size
 
@@ -24,7 +25,15 @@ def rgbToGrayscale(RGBImage):
             matrix[i][j] = gscalevalue
     
     return matrix
+'''
+def rgbToGrayscale(RGBImage):
+    # Konversi gambar ke array NumPy
+    image_array = np.array(RGBImage)
+    # Rumus grayscale: 0.2989*R + 0.5870*G + 0.1140*B
+    grayscale_array = np.dot(image_array[..., :3], [0.2989, 0.5870, 0.1140])
+    return grayscale_array.astype(int)
 
+'''
 # Fungsi untuk mengubah ukuran gambar secara manual
 # Menggunakan metode nearest neighbor scaling
 def resize_image_manual(image_matrix, new_width, new_height):
@@ -39,6 +48,15 @@ def resize_image_manual(image_matrix, new_width, new_height):
             resized_matrix[i][j] = image_matrix[old_y][old_x]
     
     return resized_matrix
+'''
+def resize_image_manual(image_matrix, new_width, new_height):
+    old_height, old_width = image_matrix.shape
+    # Menggunakan NumPy untuk interpolasi nearest-neighbor
+    row_ratio, col_ratio = old_height / new_height, old_width / new_width
+    row_idx = (np.arange(new_height) * row_ratio).astype(int)
+    col_idx = (np.arange(new_width) * col_ratio).astype(int)
+    resized = image_matrix[row_idx[:, None], col_idx]
+    return resized
 
 # Fungsi untuk mengubah matriks grayscale 2D menjadi vektor 1D
 # Diperlukan untuk PCA (operasi matriks lebih mudah dengan vektor 1D)
@@ -115,7 +133,7 @@ def hitung_kovarian(data):
     transposed_data = transpose(data)
     cov_matrix = np.dot(transposed_data, data) / N  # Matriks kovarian
     return cov_matrix
-
+'''
 # Fungsi untuk menghitung eigenvalue dan eigenvector secara iteratif
 # Rumus: AX = λX
 def calculate_eigendecomposition(C):
@@ -155,6 +173,14 @@ def calculate_eigendecomposition(C):
 def calculate_svd(C, k):
     U, S = calculate_eigendecomposition(C)  # Hitung eigenvalue dan eigenvector
     Uk = U[:, :k]  # Ambil k eigenvector teratas
+    return Uk
+
+'''
+# Fungsi untuk menghitung eigenvalue dan eigenvector menggunakan SVD
+def calculate_svd(C, k):
+    print("calculating svd...")
+    U, S, Vt = np.linalg.svd(C)
+    Uk = U[:, :k]
     return Uk
 
 # =====================================================================
@@ -232,8 +258,8 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     sorted_distances = sort_by_distance(distances)
     print("Distances calculated and sorted.")
 
-    # Ambil hasil dengan threshold (misalnya 20% terdekat)
-    threshold_distance = np.percentile([d for _, d in sorted_distances], 20)
+    # Ambil hasil dengan threshold (misalnya 80% terdekat)
+    threshold_distance = np.percentile([d for _, d in sorted_distances], 10)
     similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
 
     # Format hasil
@@ -253,7 +279,7 @@ def test_process_image_query():
     dataset_folder = r"src\backend\image\album"
     query_image_path = r"src\backend\image\query\ridetes.jpg"
     image_size = (64, 64)
-    k = 10
+    k = 20
 
     result, execution_time = process_image_query(query_image_path, dataset_folder, image_size, k)
     print(f"Execution time: {execution_time} ms")
