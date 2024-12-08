@@ -255,6 +255,10 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     # Mulai timer
     start_time = time.time()
 
+    # Load mapper
+    mapper_path = os.path.join(dataset_folder, 'mapper.json')
+    mapper = load_mapper(mapper_path)
+    
     # Load dataset gambar
     images = load_images_from_folder(dataset_folder, image_size)
     print(f"Loaded {len(images)} images.")
