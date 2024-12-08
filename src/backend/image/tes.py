@@ -2,48 +2,15 @@ from PIL import Image
 import os
 import time
 import numpy as np
-import json
 #pake ini buat ngetes
 #import matplotlib.pyplot as plt
-def load_mapper(mapper_path):
-    """
-    Fungsi untuk memuat mapper dari file JSON atau TXT.
-    """
-    if mapper_path.endswith('.json'):
-        with open(mapper_path, 'r') as f:
-            mapper = json.load(f)
-    elif mapper_path.endswith('.txt'):
-        mapper = {}
-        with open(mapper_path, 'r') as f:
-            lines = f.readlines()
-            for line in lines[1:]:  # Skip header
-                audio, pic = line.strip().split()
-                mapper[pic] = audio
-    else:
-        raise ValueError("Unsupported mapper file format. Use .json or .txt.")
-    return mapper
+
 # =====================================================================
 # STEP 1: Image Processing and Loading
 # =====================================================================
 
 # Fungsi untuk mengubah gambar RGB menjadi grayscale
 # Rumus digunakan: I(x, y) = 0.2989*R(x, y) + 0.587*G(x, y) + 0.114*B(x, y)
-'''
-def rgbToGrayscale(RGBImage):
-    width, height = RGBImage.size
-
-    # Inisialisasi matriks grayscale
-    matrix = [[0 for i in range(width)] for j in range(height)]
-    
-    # Iterasi setiap piksel untuk menghitung nilai grayscale
-    for i in range(height):
-        for j in range(width):
-            r, g, b = RGBImage.getpixel((j, i))
-            gscalevalue = int(0.2989 * r + 0.587 * g + 0.114 * b)  # Grayscale formula
-            matrix[i][j] = gscalevalue
-    
-    return matrix
-'''
 def rgbToGrayscale(RGBImage):
     # Konversi gambar ke array NumPy
     image_array = np.array(RGBImage)
@@ -51,22 +18,6 @@ def rgbToGrayscale(RGBImage):
     grayscale_array = np.dot(image_array[..., :3], [0.2989, 0.5870, 0.1140])
     return grayscale_array.astype(int)
 
-'''
-# Fungsi untuk mengubah ukuran gambar secara manual
-# Menggunakan metode nearest neighbor scaling
-def resize_image_manual(image_matrix, new_width, new_height):
-    old_height, old_width = len(image_matrix), len(image_matrix[0])
-    resized_matrix = [[0 for _ in range(new_width)] for _ in range(new_height)]
-    
-    # Hitung rasio skala
-    for i in range(new_height):
-        for j in range(new_width):
-            old_x = int(j * old_width / new_width)
-            old_y = int(i * old_height / new_height)
-            resized_matrix[i][j] = image_matrix[old_y][old_x]
-    
-    return resized_matrix
-'''
 def resize_image_manual(image_matrix, new_width, new_height):
     old_height, old_width = image_matrix.shape
     # Menggunakan NumPy untuk interpolasi nearest-neighbor
@@ -151,49 +102,7 @@ def hitung_kovarian(data):
     transposed_data = transpose(data)
     cov_matrix = np.dot(transposed_data, data) / N  # Matriks kovarian
     return cov_matrix
-'''
-# Fungsi untuk menghitung eigenvalue dan eigenvector secara iteratif
-# Rumus: AX = λX
-def calculate_eigendecomposition(C):
-    n = len(C)
-    eigenvalues = np.zeros(n)
-    eigenvectors = np.zeros((n, n))
 
-    C_remaining = np.array(C) # Salin matriks kovarian
-
-    for i in range(10):  # Iterasi untuk setiap eigenvector
-        print(f"Calculating eigenvector {i+1}")
-        v = np.random.rand(n) # Inisialisasi vektor acak
-        v = v / np.linalg.norm(v)  # Normalisasi
-
-        for _ in range(100): # Iterasi maksimum 100 kali
-            Cv = np.dot(C_remaining, v) # Kalikan matriks dengan vektor
-            lambda_i = np.dot(v, Cv) / np.dot(v, v)# Hitung eigenvalue
-
-            v_new = Cv / np.linalg.norm(Cv) # Normalisasi eigenvector baru
-            # Periksa konvergensi
-            if np.allclose(v, v_new, rtol=1e-6):
-                break
-            v = v_new
-
-        eigenvalues[i] = lambda_i # Simpan eigenvalue
-        eigenvectors[:, i] = v # Simpan eigenvector
-        # Kurangi kontribusi eigenvector dari matriks
-        C_remaining = C_remaining - lambda_i * np.outer(v, v)
-    # Urutkan eigenvalue dan eigenvector
-    idx = eigenvalues.argsort()[::-1]
-    eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:, idx]
-
-    return eigenvectors, eigenvalues
-
-# Fungsi untuk menghitung SVD
-def calculate_svd(C, k):
-    U, S = calculate_eigendecomposition(C)  # Hitung eigenvalue dan eigenvector
-    Uk = U[:, :k]  # Ambil k eigenvector teratas
-    return Uk
-
-'''
 # Fungsi untuk menghitung eigenvalue dan eigenvector menggunakan SVD
 def calculate_svd(C, k):
     print("calculating svd...")
@@ -281,7 +190,6 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
 
     # Format hasil
-    '''
     result = []
     for idx in similar_images_indices:
         result.append({
@@ -289,47 +197,8 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
             "distance": sorted_distances[idx][1],
             "filename": os.listdir(dataset_folder)[idx]
         })
-    '''
-    result = []
-    for idx in similar_images_indices:
-        image_filename = os.listdir(dataset_folder)[idx]
-        result.append({
-            "image_index": idx,
-            "distance": sorted_distances[idx][1],
-            "filename": image_filename,
-            "audio": mapper.get(image_filename, "Unknown")  # Cari audio di mapper
-        })
+
     # Hitung waktu eksekusi
     execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
     return result, execution_time
-'''
-def test_process_image_query():
-    dataset_folder = r"src\backend\image\album"
-    query_image_path = r"src\backend\image\query\ridetes.jpg"
-    image_size = (64, 64)
-    k = 20
 
-    result, execution_time = process_image_query(query_image_path, dataset_folder, image_size, k)
-    print(f"Execution time: {execution_time} ms")
-    print("Results:")
-    for res in result:
-        print(res)
-
-    query_img = Image.open(query_image_path)
-    similar_images = [Image.open(os.path.join(dataset_folder, res["filename"])) for res in result]
-
-    fig, axs = plt.subplots(1, len(similar_images) + 1, figsize=(15, 6))
-    axs[0].imshow(query_img)
-    axs[0].set_title('Query Image')
-    axs[0].axis('off')
-
-    for idx, similar_image in enumerate(similar_images):
-        axs[idx + 1].imshow(similar_image)
-        axs[idx + 1].set_title(f'Similar Image {idx + 1}')
-        axs[idx + 1].axis('off')
-
-    plt.show()
-
-# Run the test function
-test_process_image_query()
-'''
