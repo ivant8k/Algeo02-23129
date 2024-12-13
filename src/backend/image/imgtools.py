@@ -11,7 +11,9 @@ def load_mapper(mapper_path):
     """
     if mapper_path.endswith('.json'):
         with open(mapper_path, 'r') as f:
-            mapper = json.load(f)
+            data = json.load(f)  # Data awal berbentuk list of dictionaries
+        # Ubah menjadi dictionary
+        mapper = {item['pic_name']: item['audio_file'] for item in data}
     elif mapper_path.endswith('.txt'):
         mapper = {}
         with open(mapper_path, 'r') as f:
@@ -133,7 +135,7 @@ def standardize_images(images, pixel_averages):
 # =====================================================================
 # STEP 3: PCA Computation Using SVD
 # =====================================================================
-
+'''
 # Fungsi untuk menghitung transpose matriks secara manual
 def transpose(Mtx):
     h = len(Mtx)  # Jumlah baris
@@ -150,6 +152,12 @@ def hitung_kovarian(data):
     N = len(data)  # Jumlah sampel
     transposed_data = transpose(data)
     cov_matrix = np.dot(transposed_data, data) / N  # Matriks kovarian
+    return cov_matrix
+'''
+def hitung_kovarian(data):
+    N = len(data)
+    data_np = np.array(data)
+    cov_matrix = np.dot(data_np.T, data_np) / N
     return cov_matrix
 '''
 # Fungsi untuk menghitung eigenvalue dan eigenvector secara iteratif
@@ -238,7 +246,7 @@ def sort_by_distance(distances):
 #MAPPER_PATH = "test/mapper.json"
 
 # Fungsi untuk memproses query gambar dengan PCA
-def process_image_query(query_image_path, dataset_folder, image_size, k):
+def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_path):
     """
     Proses query gambar menggunakan PCA.
 
@@ -256,7 +264,7 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     start_time = time.time()
 
     # Load mapper
-    mapper_path = os.path.join(dataset_folder, 'mapper.json')
+    #mapper_path = os.path.join(dataset_folder, 'mapper.json')
     mapper = load_mapper(mapper_path)
     
     # Load dataset gambar
@@ -281,7 +289,7 @@ def process_image_query(query_image_path, dataset_folder, image_size, k):
     print("Distances calculated and sorted.")
 
     # Ambil hasil dengan threshold (misalnya 80% terdekat)
-    threshold_distance = np.percentile([d for _, d in sorted_distances], 10)
+    threshold_distance = np.percentile([d for _, d in sorted_distances], 30)
     similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
 
     # Format hasil
