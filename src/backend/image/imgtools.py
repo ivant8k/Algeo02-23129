@@ -7,23 +7,28 @@ import json
 #import matplotlib.pyplot as plt
 def load_mapper(mapper_path):
     """
-    Fungsi untuk memuat mapper dari file JSON atau TXT.
+    Memuat mapper dari file JSON atau TXT.
+
+    Parameters:
+    - mapper_path: str, path ke file mapper.
+
+    Returns:
+    - dict, mapping dari audio_file ke pic_name.
     """
     if mapper_path.endswith('.json'):
         with open(mapper_path, 'r') as f:
-            data = json.load(f)  # Data awal berbentuk list of dictionaries
-        # Ubah menjadi dictionary
-        mapper = {item['pic_name']: item['audio_file'] for item in data}
+            mapper_data = json.load(f)
+        return {item['audio_file']: item['pic_name'] for item in mapper_data}
     elif mapper_path.endswith('.txt'):
-        mapper = {}
         with open(mapper_path, 'r') as f:
             lines = f.readlines()
-            for line in lines[1:]:  # Skip header
-                audio, pic = line.strip().split()
-                mapper[pic] = audio
+        mapper_data = {}
+        for line in lines[1:]:  # Abaikan header
+            audio_file, pic_name = line.strip().split()
+            mapper_data[audio_file] = pic_name
+        return mapper_data
     else:
-        raise ValueError("Unsupported mapper file format. Use .json or .txt.")
-    return mapper
+        raise ValueError("Format mapper tidak didukung. Gunakan file JSON atau TXT.")
 # =====================================================================
 # STEP 1: Image Processing and Loading
 # =====================================================================

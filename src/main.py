@@ -1,121 +1,146 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
-import sys
-import os
 from PIL import Image, ImageTk
+import os
+import sys
 
 # Tambahkan folder src ke PYTHONPATH
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-# Import modul dari backend
-from backend.audio.main_audio import audioMain
+# Impor modul yang relevan
 from backend.image.imgtools import process_image_query, load_mapper
+from backend.audio.main_audio import process_audio_query
 
-# Default settings
-IMAGE_SIZE = (64, 64)
-K = 20
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Information Retrieval System")
+        self.root.geometry("600x400")
+        
+        # Variabel untuk menyimpan file
+        self.query_file = None
+        self.dataset_image_folder = None
+        self.dataset_audio_folder = None
+        self.mapper_file = None
 
-# Global variables
-dataset_folder = ""
-mapper_path = ""
-query_image_path = ""
-audio_query_path = ""
+        # Frame untuk Input
+        frame_input = tk.Frame(root)
+        frame_input.pack(pady=20)
 
-# GUI Functions
-def upload_dataset():
-    global dataset_folder
-    folder = filedialog.askdirectory(title="Pilih Folder Dataset Gambar")
-    if folder:
-        dataset_folder = folder
-        lbl_dataset.config(text=f"Dataset: {os.path.basename(folder)}")
-        messagebox.showinfo("Dataset Terunggah", f"Dataset berhasil dipilih: {folder}")
+        tk.Button(frame_input, text="Unggah Query (Gambar/Audio)", command=self.upload_query).pack(pady=5)
+        tk.Button(frame_input, text="Unggah Dataset Gambar", command=self.upload_dataset_image).pack(pady=5)
+        tk.Button(frame_input, text="Unggah Dataset Audio", command=self.upload_dataset_audio).pack(pady=5)
+        tk.Button(frame_input, text="Unggah Mapper", command=self.upload_mapper).pack(pady=5)
 
-def upload_mapper():
-    global mapper_path
-    file = filedialog.askopenfilename(title="Pilih File Mapper", filetypes=[("JSON/TXT Files", "*.json *.txt")])
-    if file:
-        mapper_path = file
-        lbl_mapper.config(text=f"Mapper: {os.path.basename(file)}")
-        messagebox.showinfo("Mapper Terunggah", f"Mapper berhasil dipilih: {file}")
+        # Frame untuk Eksekusi
+        frame_action = tk.Frame(root)
+        frame_action.pack(pady=20)
+        tk.Button(frame_action, text="Jalankan Pencarian", command=self.run_query).pack()
 
-def upload_query_image():
-    global query_image_path
-    file = filedialog.askopenfilename(title="Pilih Gambar Query", filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
-    if file:
-        query_image_path = file
-        lbl_query.config(text=f"Query Image: {os.path.basename(file)}")
-        messagebox.showinfo("Gambar Query Terunggah", f"Gambar query berhasil dipilih: {file}")
-def upload_audio():
-    global audio_query_path
-    file = filedialog.askopenfilename(title="Pilih File Audio Query", filetypes=[("MIDI Files", "*.midi *.mid")])
-    if file:
-        audio_query_path = file
-        lbl_audio_query.config(text=f"Audio Query: {os.path.basename(file)}")
-        messagebox.showinfo("Audio Query Terunggah", f"Audio query berhasil dipilih: {file}")
+        # Frame untuk Output
+        self.frame_output = tk.Frame(root)
+        self.frame_output.pack(pady=20)
 
-def run_program():
-    global dataset_folder, mapper_path, query_image_path, audio_query_path
-    if not dataset_folder or not mapper_path:
-        messagebox.showerror("Error", "Pastikan dataset dan mapper telah diunggah.")
-        return
+    def upload_query(self):
+        self.query_file = filedialog.askopenfilename(
+            title="Pilih File Query (Gambar atau Audio)",
+            filetypes=(("Gambar atau Audio", "*.jpg *.jpeg *.png *.midi"), ("Semua File", "*.*"))
+        )
+        messagebox.showinfo("Query File", f"File dipilih: {os.path.basename(self.query_file)}")
 
-    try:
-        if query_image_path:
-            # Jalankan pencarian berbasis gambar
-            result, execution_time = process_image_query(
-                query_image_path,
-                dataset_folder,
-                IMAGE_SIZE,
-                K,
-                mapper_path
-            )
-            display_results(result, execution_time, is_audio=False)
-        elif audio_query_path:
-            # Jalankan pencarian berbasis audio
-            result = audioMain(audio_query_path)
-            display_results(result, 0, is_audio=True)  # AudioMain tidak memberikan waktu eksekusi
+    def upload_dataset_image(self):
+        self.dataset_image_folder = filedialog.askdirectory(title="Pilih Folder Dataset Gambar")
+        messagebox.showinfo("Dataset Gambar", f"Folder dipilih: {self.dataset_image_folder}")
+
+    def upload_dataset_audio(self):
+        self.dataset_audio_folder = filedialog.askdirectory(title="Pilih Folder Dataset Audio")
+        messagebox.showinfo("Dataset Audio", f"Folder dipilih: {self.dataset_audio_folder}")
+
+    def upload_mapper(self):
+        self.mapper_file = filedialog.askopenfilename(
+            title="Pilih File Mapper (JSON atau TXT)",
+            filetypes=(("File Mapper", "*.json *.txt"), ("Semua File", "*.*"))
+        )
+        messagebox.showinfo("Mapper File", f"File dipilih: {os.path.basename(self.mapper_file)}")
+
+    def run_query(self):
+        if not self.query_file or not self.dataset_image_folder or not self.dataset_audio_folder or not self.mapper_file:
+            messagebox.showerror("Error", "Harap unggah semua file yang diperlukan!")
+            return
+
+        is_audio = self.query_file.endswith(".midi")
+
+        # Hapus hasil sebelumnya
+        for widget in self.frame_output.winfo_children():
+            widget.destroy()
+
+        # Jalankan pencarian
+        try:
+            if is_audio:
+                result, execution_time = process_audio_query(
+                    self.query_file,
+                    self.dataset_audio_folder,
+                    mapper_path=self.mapper_file
+                )
+            else:
+                result, execution_time = process_image_query(
+                    self.query_file,
+                    self.dataset_image_folder,
+                    (64, 64),  # Ukuran gambar
+                    k=20,  # Jumlah principal component
+                    mapper_path=self.mapper_file
+                )
+
+            self.display_results(result, execution_time, is_audio)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Terjadi kesalahan: {str(e)}")
+
+    def display_results(self, result, execution_time, is_audio):
+        tk.Label(self.frame_output, text=f"Waktu Eksekusi: {execution_time:.2f} ms", font=("Arial", 12, "bold")).pack(pady=10)
+
+        if not is_audio:
+            for idx, res in enumerate(result, start=1):
+                frame = tk.Frame(self.frame_output)
+                frame.pack(pady=5)
+
+                # Tampilkan gambar
+                image_path = os.path.join(self.dataset_image_folder, res["filename"])
+                img = Image.open(image_path)
+                img = img.resize((150, 150))
+                img_tk = ImageTk.PhotoImage(img)
+
+                lbl_image = tk.Label(frame, image=img_tk)
+                lbl_image.image = img_tk  # Simpan referensi
+                lbl_image.pack(side=tk.LEFT, padx=5)
+
+                # Tampilkan informasi
+                tk.Label(frame, text=f"#{idx}: {res['filename']}\nJarak: {res['distance']:.2f}").pack(side=tk.LEFT, padx=5)
         else:
-            messagebox.showerror("Error", "Pilih file query gambar atau audio.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan: {e}")
+            for idx, res in enumerate(result, start=1):
+                frame = tk.Frame(self.frame_output)
+                frame.pack(pady=5)
 
-def display_results(result, execution_time, is_audio):
-    result_window = tk.Toplevel(root)
-    result_window.title("Hasil Pencarian")
-    if not is_audio:
-        tk.Label(result_window, text=f"Waktu Eksekusi: {execution_time:.2f} ms", font=("Arial", 12, "bold")).pack(pady=10)
-        for idx, res in enumerate(result, start=1):
-            tk.Label(result_window, text=f"#{idx}: {res['filename']} (Audio: {res['audio']}) - Jarak: {res['distance']:.2f}").pack()
-    else:
-        tk.Label(result_window, text="Hasil Pencarian Audio", font=("Arial", 12, "bold")).pack(pady=10)
-        for idx, (audio_file, similarity) in enumerate(result.items(), start=1):
-            tk.Label(result_window, text=f"#{idx}: {audio_file} - Similarity: {similarity*100:.2f}%").pack()
+                # Tampilkan gambar terkait audio dari mapper
+                mapped_image = res.get("image")
+                if mapped_image:
+                    image_path = os.path.join(self.dataset_image_folder, mapped_image)
+                    try:
+                        img = Image.open(image_path)
+                        img = img.resize((150, 150))
+                        img_tk = ImageTk.PhotoImage(img)
 
-# GUI Layout
-root = tk.Tk()
-root.title("PCA Album Finder")
-root.geometry("500x400")
+                        lbl_image = tk.Label(frame, image=img_tk)
+                        lbl_image.image = img_tk  # Simpan referensi
+                        lbl_image.pack(side=tk.LEFT, padx=5)
+                    except FileNotFoundError:
+                        tk.Label(frame, text="Gambar tidak ditemukan", font=("Arial", 10)).pack(side=tk.LEFT, padx=5)
 
-tk.Label(root, text="PCA Album Finder", font=("Arial", 16, "bold")).pack(pady=10)
+                # Tampilkan informasi audio
+                tk.Label(frame, text=f"#{idx}: {res['filename']} - Similarity: {res['similarity']:.2f}%").pack(side=tk.LEFT, padx=5)
 
-# Dataset Upload
-tk.Button(root, text="Unggah Dataset Gambar", command=upload_dataset).pack(pady=5)
-lbl_dataset = tk.Label(root, text="Dataset: Belum dipilih")
-lbl_dataset.pack()
-
-# Mapper Upload
-tk.Button(root, text="Unggah Mapper (JSON/TXT)", command=upload_mapper).pack(pady=5)
-lbl_mapper = tk.Label(root, text="Mapper: Belum dipilih")
-lbl_mapper.pack()
-
-# Query Image Upload
-tk.Button(root, text="Unggah Gambar Query", command=upload_query_image).pack(pady=5)
-lbl_query = tk.Label(root, text="Query Image: Belum dipilih")
-lbl_query.pack()
-tk.Button(root, text="Unggah Audio Query", command=upload_audio).pack(pady=5)
-lbl_audio_query = tk.Label(root, text="Audio Query: Belum dipilih")
-lbl_audio_query.pack()
-# Run Button
-tk.Button(root, text="Jalankan Program", command=run_program, bg="green", fg="white", font=("Arial", 12, "bold")).pack(pady=20)
-
-root.mainloop()
+# Jalankan Aplikasi
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
