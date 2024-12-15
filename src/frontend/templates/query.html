@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Query{% endblock %}
+{% block content %}
+<section class="query">
+    <h2>Perform a Query</h2>
+    <form action="/query" method="POST" enctype="multipart/form-data">
+        <label for="query_type">Select Query Type:</label>
+        <select name="query_type" id="query_type">
+            <option value="image">Album Finder with PCA</option>
+            <option value="audio">Query by Humming</option>
+        </select>
+        <br>
+        <label for="query_file">Upload Query File:</label>
+        <input type="file" name="query_file" id="query_file" accept=".jpg,.jpeg,.png,.wav,.midi,.mp3">
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+</section>
+{% endblock %}
