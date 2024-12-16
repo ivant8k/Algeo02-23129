@@ -1,18 +1,54 @@
-{% extends "base.html" %}
-{% block title %}Results{% endblock %}
-{% block content %}
-<section class="results">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            text-align: center;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        img {
+            display: block;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
     <h2>Query Results</h2>
-    <p>Execution Time: {{ execution_time }} ms</p>
     <ul>
-        {% for result in results %}
+        {% for item in results %}
         <li>
-            <strong>{{ result.filename }}</strong>: {{ result.similarity }}% similarity
-            {% if result.image %}
-            <img src="{{ url_for('static', filename=result.image) }}" alt="{{ result.filename }}">
+            <p><b>Image:</b> {{ item.filename }}</p>
+            {% if item.image_path %}
+            <img src="{{ item.image_path }}" alt="Image for {{ item.filename }}" width="150">
+            {% else %}
+            <p><b>Image:</b> No image available</p>
+            {% endif %}
+            
+            <p><b>Audio:</b> {{ item.audio }}</p>
+            
+            {% if item.similarity %}
+            <p><b>Similarity:</b> {{ item.similarity }}%</p>
+            {% else %}
+            <p><b>Similarity:</b> {{ item.distance }}</p>
             {% endif %}
         </li>
         {% endfor %}
     </ul>
-</section>
-{% endblock %}
+    <p><b>Execution Time:</b> {{ execution_time }} ms</p>
+</body>
+</html>

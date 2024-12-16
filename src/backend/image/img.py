@@ -6,25 +6,29 @@ import json
 #pake ini buat ngetes
 #import matplotlib.pyplot as plt
 def load_mapper(mapper_path):
+    """
+    Memuat mapper dari file JSON atau TXT.
+
+    Parameters:
+    - mapper_path: str, path ke file mapper.
+
+    Returns:
+    - dict, mapping dari audio_file ke pic_name.
+    """
     if mapper_path.endswith('.json'):
         with open(mapper_path, 'r') as f:
             mapper_data = json.load(f)
-        # Gunakan hanya basename untuk mencocokkan file
-        mapped = {os.path.basename(item['audio_file']): os.path.basename(item['pic_name']) for item in mapper_data}
-        print("Debug: Loaded mapper (JSON) -", mapped)
-        return mapped
+        return {item['audio_file']: item['pic_name'] for item in mapper_data}
     elif mapper_path.endswith('.txt'):
         with open(mapper_path, 'r') as f:
             lines = f.readlines()
         mapper_data = {}
         for line in lines[1:]:  # Abaikan header
             audio_file, pic_name = line.strip().split()
-            mapper_data[os.path.basename(audio_file)] = os.path.basename(pic_name)
-        print("Debug: Loaded mapper (TXT) -", mapper_data)
+            mapper_data[audio_file] = pic_name
         return mapper_data
     else:
-        raise ValueError("Unsupported mapper format. Use JSON or TXT.")
-
+        raise ValueError("Format mapper tidak didukung. Gunakan file JSON atau TXT.")
 # =====================================================================
 # STEP 1: Image Processing and Loading
 # =====================================================================
@@ -104,7 +108,6 @@ def load_images_from_folder(folder, size):
         file_path = os.path.join(folder, filename)
         if os.path.isfile(file_path):  # Pastikan hanya file yang diproses
             try:
-                print(f"Processing image file: {file_path}")
                 img = Image.open(file_path)  # Load gambar
                 # Ubah menjadi grayscale, resize, lalu tambahkan ke list
                 grayscale_matrix = rgbToGrayscale(img)
@@ -283,10 +286,7 @@ def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_
     # Load mapper
     #mapper_path = os.path.join(dataset_folder, 'mapper.json')
     mapper = load_mapper(mapper_path)
-    print("Mapper loaded:", mapper) 
-    # Balik mapper untuk mencocokkan gambar ke audio
-    reversed_mapper = {v: k for k, v in mapper.items()}  # Dari gambar -> audio
-    print("Debug: Reversed Mapper for PCA:", reversed_mapper)  
+    
     # Load dataset gambar
     images = load_images_from_folder(dataset_folder, image_size)
     print(f"Loaded {len(images)} images.")
@@ -307,20 +307,30 @@ def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_
     distances = calculate_euclidean_distances(q, Z)
     sorted_distances = sort_by_distance(distances)
     print("Distances calculated and sorted.")
-    # Ambil hasil
+
+    # Ambil hasil dengan threshold (misalnya 80% terdekat)
+    threshold_distance = np.percentile([d for _, d in sorted_distances], 30)
+    similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
+
+    # Format hasil
+    '''
     result = []
-    filenames = os.listdir(dataset_folder)
-    for idx, distances in sorted_distances[:5]:  # Ambil 5 teratas
-        image_filename = filenames[idx]
-        audio_key = mapper.get(os.path.basename(image_filename), "Unknown")
+    for idx in similar_images_indices:
         result.append({
-            "filename": image_filename,
+            "image_index": idx,
             "distance": sorted_distances[idx][1],
-            "image_path": f"/static/uploads/images/{image_filename}",
-            "audio": reversed_mapper.get(os.path.basename(image_filename), "Unknown")
+            "filename": os.listdir(dataset_folder)[idx]
         })
-    print(f"Debug: Mapper Match for {image_filename}: {reversed_mapper.get(os.path.basename(image_filename), 'Unknown')}")
-    print("Debug: PCA Results -", result)
+    '''
+    result = []
+    for idx in similar_images_indices:
+        image_filename = os.listdir(dataset_folder)[idx]
+        result.append({
+            "image_index": idx,
+            "distance": sorted_distances[idx][1],
+            "filename": image_filename,
+            "audio": mapper.get(image_filename, "Unknown")  # Cari audio di mapper
+        })
     # Hitung waktu eksekusi
     execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
     return result, execution_time

@@ -51,9 +51,8 @@ def process_audio_query(test_file_path, dataset_folder, mapper_path=None, tuning
 
         # Pastikan file dataset adalah file valid
         if not os.path.isfile(dataset_file_path):
-            print(f"Skipping non-file entry: {dataset_file_path}")
             continue
-        print(f"Processing audio file: {dataset_file_path}")
+
         # Buka file audio dataset
         audio_dataset = Audio(dataset_file_path, window_size, window_step)
 
@@ -62,15 +61,11 @@ def process_audio_query(test_file_path, dataset_folder, mapper_path=None, tuning
 
         # Tambahkan hasil ke list
         similarity_results.append({
-            "filename": file_dataset,  # Nama file audio (sama seperti PCA, ganti "audio" menjadi "filename")
-            "similarity": similarity_value * 100,  # Similaritas dalam persen
-            "image_path": f"/static/uploads/images/{mapper.get(os.path.basename(file_dataset), 'Unknown')}",  # Path gambar terkait
-            "audio": file_dataset  # Nama file audio
+            "filename": file_dataset,
+            "similarity": similarity_value * 100,  # Dalam persen
+            "image": mapper.get(file_dataset)  # Cari gambar terkait di mapper
         })
 
-        print(f"Debug: Audio Query Result - Audio: {file_dataset}, Image: {mapper.get(os.path.basename(file_dataset), 'Unknown')}")
-
-        print(f"Debug: Mapper Match for {file_dataset}: {mapper.get(os.path.basename(file_dataset), 'No image available')}")
     # Urutkan hasil berdasarkan similaritas tertinggi
     similarity_results.sort(key=lambda x: x["similarity"], reverse=True)
 
