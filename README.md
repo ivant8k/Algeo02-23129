@@ -129,6 +129,7 @@ Algeo02-23129
 5. Install Requirement by typing 'pip install -r requirement.txt'
 6. Ensure Python is installed
 7. type 'python app.py' in terminal
+8. Ctrl+click 'http://127.0.0.1:5000' to open website
 
 
 
