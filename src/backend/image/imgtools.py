@@ -6,25 +6,29 @@ import json
 #pake ini buat ngetes
 #import matplotlib.pyplot as plt
 def load_mapper(mapper_path):
+    """
+    Muat mapper dari file JSON atau TXT.
+    """
+    if not os.path.exists(mapper_path):
+        raise FileNotFoundError(f"Mapper file not found: {mapper_path}")
+    
     if mapper_path.endswith('.json'):
+        # Memuat file mapper JSON
         with open(mapper_path, 'r') as f:
             mapper_data = json.load(f)
         # Gunakan hanya basename untuk mencocokkan file
-        mapped = {os.path.basename(item['audio_file']): os.path.basename(item['pic_name']) for item in mapper_data}
-        print("Debug: Loaded mapper (JSON) -", mapped)
-        return mapped
+        return {os.path.basename(item['audio_file']): os.path.basename(item['pic_name']) for item in mapper_data}
     elif mapper_path.endswith('.txt'):
+        # Memuat file mapper TXT
         with open(mapper_path, 'r') as f:
             lines = f.readlines()
         mapper_data = {}
         for line in lines[1:]:  # Abaikan header
             audio_file, pic_name = line.strip().split()
             mapper_data[os.path.basename(audio_file)] = os.path.basename(pic_name)
-        print("Debug: Loaded mapper (TXT) -", mapper_data)
         return mapper_data
     else:
         raise ValueError("Unsupported mapper format. Use JSON or TXT.")
-
 # =====================================================================
 # STEP 1: Image Processing and Loading
 # =====================================================================
@@ -265,67 +269,87 @@ def sort_by_distance(distances):
 # Fungsi untuk memproses query gambar dengan PCA
 def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_path):
     """
-    Proses query gambar menggunakan PCA.
-
+    Proses query gambar menggunakan PCA dengan perhitungan similarity.
     Parameters:
     - query_image_path: str, path gambar query.
     - dataset_folder: str, folder dataset gambar.
     - image_size: tuple, ukuran gambar (width, height).
     - k: int, jumlah komponen utama PCA.
-
     Returns:
-    - result: list of dict, hasil query berupa gambar mirip dan jaraknya.
+    - result: list of dict, hasil query berupa gambar mirip dan similarity.
     - execution_time: float, waktu eksekusi dalam milidetik.
     """
-    # Mulai timer
     start_time = time.time()
-
-    # Load mapper
-    #mapper_path = os.path.join(dataset_folder, 'mapper.json')
+    
     mapper = load_mapper(mapper_path)
     print("Mapper loaded:", mapper) 
-    # Balik mapper untuk mencocokkan gambar ke audio
-    reversed_mapper = {v: k for k, v in mapper.items()}  # Dari gambar -> audio
+    
+    reversed_mapper = {v: k for k, v in mapper.items()}
     print("Debug: Reversed Mapper for PCA:", reversed_mapper)  
-    # Load dataset gambar
+    
     images = load_images_from_folder(dataset_folder, image_size)
     print(f"Loaded {len(images)} images.")
+    
     pixel_averages = calculate_pixel_averages(images)
     print("Pixel averages calculated.")
+    
     standardized_images = standardize_images(images, pixel_averages)
     print("Images standardized.")
+    
     cov_matrix = hitung_kovarian(standardized_images)
     print("Covariance matrix calculated.")
+    
     Uk = calculate_svd(cov_matrix, k)
     print("SVD calculated.")
-    Z = np.dot(standardized_images, Uk)  # Proyeksikan dataset
+    
+    Z = np.dot(standardized_images, Uk)
     print("Data projected onto principal components.")
-
-    # Proses query image
+    
     query_img, q = project_query_image(query_image_path, pixel_averages, Uk, image_size)
     print("Query image projected.")
+    
     distances = calculate_euclidean_distances(q, Z)
     sorted_distances = sort_by_distance(distances)
     print("Distances calculated and sorted.")
-    # Ambil hasil
+    
+    # Get threshold distance for top 50%
     threshold_distance = np.percentile([d for _, d in sorted_distances], 45)
-    similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
-
+    
+    # Get min and max distances for filtered results
+    filtered_distances = [(i, d) for i, d in sorted_distances if d <= threshold_distance]
+    min_filtered_distance = min(d for _, d in filtered_distances)
+    max_filtered_distance = max(d for _, d in filtered_distances)
+    
+    def calculate_similarity(distance):
+        """Calculate similarity with range 50-100 for filtered results"""
+        if distance < 1e-10:  # Exact match
+            return 100.0
+            
+        # Scale similarity to range 55-100 for filtered results
+        normalized = (distance - min_filtered_distance) / (max_filtered_distance - min_filtered_distance)
+        similarity = 100 - (normalized * 45)
+        return round(similarity, 2)
+    
     result = []
     filenames = os.listdir(dataset_folder)
-    for idx in similar_images_indices:  # Ambil gambar dengan jarak di bawah threshold
-        image_filename = filenames[idx]
-        audio_key = mapper.get(os.path.basename(image_filename), "Unknown")
-        result.append({
-            "filename": image_filename,
-            "distance": sorted_distances[idx][1],
-            "image_path": f"/static/uploads/images/{image_filename}",
-            "audio": reversed_mapper.get(os.path.basename(image_filename), "Unknown")
-        })
-
-    print(f"Debug: PCA Results - {result}")
-
-    execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
+    
+    for idx, distance in sorted_distances:
+        if distance <= threshold_distance:  # Only include top 50%
+            similarity = calculate_similarity(distance)
+            image_filename = filenames[idx]
+            
+            result.append({
+                "filename": image_filename,
+                "distance": distance,
+                "similarity": similarity,
+                "image_path": f"/static/uploads/images/{image_filename}",
+                "audio": reversed_mapper.get(os.path.basename(image_filename), "Unknown")
+            })
+    
+    result.sort(key=lambda x: x['similarity'], reverse=True)
+    
+    print(f"Debug: PCA Results with Similarity - {result}")
+    execution_time = (time.time() - start_time) * 1000
     return result, execution_time
 '''
 def test_process_image_query():

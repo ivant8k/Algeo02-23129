@@ -13,12 +13,12 @@
         <label for="mapper">Upload Mapper:</label>
         <input type="file" name="mapper" id="mapper" accept=".json,.txt" required>
         <br>
-        <button type="submit" class="btn">Submit</button>
-    </form>
+        <button type="submit">Submit</button>
+    </form>      
     {% if success %}
-    <p class="success">Dataset uploaded successfully!</p>
+        <p class="success">Dataset uploaded successfully!</p>
     {% elif error %}
-    <p class="error">{{ error }}</p>
+        <p class="error">{{ error }}</p>
     {% endif %}
 </section>
 {% endblock %}

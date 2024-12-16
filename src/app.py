@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import zipfile
 import rarfile
 import shutil
+import patoolib
 
 # Tambahkan src ke PYTHONPATH
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -12,6 +13,37 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 # Import modul backend
 from backend.image.imgtools import process_image_query
 from backend.audio.main_audio import process_audio_query
+
+# Fungsi untuk menghapus isi folder
+def clean_folder(folder_path):
+    """Menghapus semua file dalam folder, tetapi tidak folder itu sendiri."""
+    if os.path.exists(folder_path):
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            try:
+                if os.path.isfile(file_path):  # Jika itu file
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):  # Jika itu folder
+                    shutil.rmtree(file_path)
+                print(f"Deleted {file_path}")
+            except Exception as e:
+                print(f"Failed to delete {file_path}: {e}")
+    else:
+        print(f"Folder {folder_path} tidak ditemukan!")
+
+# Membersihkan folder saat aplikasi dimulai
+def clean_uploads():
+    base_path = os.path.join(os.getcwd(), 'src', 'frontend', 'static', 'uploads')
+    
+    # Folder yang ingin dibersihkan
+    folders_to_clean = ['audios', 'images', 'mapper', 'query']
+    
+    for folder in folders_to_clean:
+        folder_path = os.path.join(base_path, folder)
+        clean_folder(folder_path)
+
+# Panggil clean_uploads saat aplikasi dimulai
+clean_uploads()
 
 # Flask Config
 app = Flask(
@@ -28,6 +60,19 @@ ALLOWED_AUDIO_EXTENSIONS = {'wav', 'mp3', 'midi'}
 ALLOWED_MAPPER_EXTENSIONS = {'json', 'txt'}
 ALLOWED_COMPRESSED_EXTENSIONS = {'zip', 'rar'}
 
+def get_mapper_path():
+    """Get the path of the mapper file, checking for both .json and .txt extensions"""
+    mapper_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'mapper')
+    
+    # List all files in mapper folder
+    if os.path.exists(mapper_folder):
+        files = os.listdir(mapper_folder)
+        for file in files:
+            if file.endswith('.txt') or file.endswith('.json'):
+                return os.path.join(mapper_folder, file)
+    
+    raise FileNotFoundError("No mapper file found (must be .txt or .json)")
+
 # Helpers
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
@@ -41,8 +86,12 @@ def extract_compressed(file_path, extract_to):
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to)
     elif file_path.endswith('.rar'):
-        with rarfile.RarFile(file_path, 'r') as rar_ref:
-            rar_ref.extractall(extract_to)
+        try:
+            patoolib.extract_archive(file_path, outdir=extract_to)
+            print(f"Successfully extracted .rar file: {file_path}")
+        except Exception as e:
+            print(f"Error extracting .rar file: {e}")
+            raise ValueError("Failed to extract .rar file.")
     else:
         raise ValueError("Unsupported compressed file format.")
 
@@ -88,9 +137,11 @@ def upload():
         # Validasi mapper
         if mapper_file and allowed_file(mapper_file.filename, ALLOWED_MAPPER_EXTENSIONS):
             mapper_filename = secure_filename(mapper_file.filename)
+            # Simpan dengan nama asli file
             mapper_path = os.path.join(app.config['UPLOAD_FOLDER'], 'mapper', mapper_filename)
             os.makedirs(os.path.dirname(mapper_path), exist_ok=True)
             mapper_file.save(mapper_path)
+            print(f"Debug: Mapper saved as {mapper_path}")
         else:
             flash("Invalid mapper file. Please upload .json or .txt format.", "danger")
             return redirect(request.url)
@@ -114,7 +165,7 @@ def upload():
                     image_file.save(filepath)
 
             move_files_to_static_folder(temp_image_folder, target_image_folder)
-            shutil.rmtree(temp_image_folder)  # Hapus folder sementara
+            shutil.rmtree(temp_image_folder)
             debug_folder_contents(target_image_folder, "images")
 
         # Proses dataset audio
@@ -136,7 +187,7 @@ def upload():
                     audio_file.save(filepath)
 
             move_files_to_static_folder(temp_audio_folder, target_audio_folder)
-            shutil.rmtree(temp_audio_folder)  # Hapus folder sementara
+            shutil.rmtree(temp_audio_folder)
             debug_folder_contents(target_audio_folder, "audio")
 
         flash("Datasets and mapper uploaded successfully.", "success")
@@ -156,23 +207,33 @@ def query():
             os.makedirs(os.path.dirname(query_path), exist_ok=True)
             query_file.save(query_path)
 
-            if query_type == 'image':
-                dataset_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
-                mapper_path = os.path.join(app.config['UPLOAD_FOLDER'], 'mapper', 'mapper.json')
-                debug_folder_contents(dataset_folder, "images")
+            try:
+                # Get mapper path dynamically
+                mapper_path = get_mapper_path()
+                print(f"Debug: Using mapper file: {mapper_path}")
 
-                results, execution_time = process_image_query(query_path, dataset_folder, (64, 64), 20, mapper_path)
-                print("Debug: PCA Results Sent to Template:", results)
-                return render_template('result.html', results=results, execution_time=execution_time)
+                if query_type == 'image':
+                    dataset_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
+                    debug_folder_contents(dataset_folder, "images")
 
-            elif query_type == 'audio':
-                dataset_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'audios')
-                mapper_path = os.path.join(app.config['UPLOAD_FOLDER'], 'mapper', 'mapper.json')
-                debug_folder_contents(dataset_folder, "audio")
+                    results, execution_time = process_image_query(query_path, dataset_folder, (64, 64), 20, mapper_path)
+                    print("Debug: PCA Results Sent to Template:", results)
+                    return render_template('result.html', results=results, execution_time=execution_time)
 
-                results, execution_time = process_audio_query(query_path, dataset_folder, mapper_path, tuning_values=None)
-                
-                return render_template('result.html', results=results, execution_time=execution_time)
+                elif query_type == 'audio':
+                    dataset_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'audios')
+                    debug_folder_contents(dataset_folder, "audio")
+
+                    results, execution_time = process_audio_query(query_path, dataset_folder, mapper_path, tuning_values=None)
+                    return render_template('result.html', results=results, execution_time=execution_time)
+
+            except FileNotFoundError as e:
+                flash(f"Error: {str(e)}", "danger")
+                return redirect(url_for('query'))
+            except Exception as e:
+                print(f"Debug: Error processing query: {str(e)}")
+                flash(f"Error processing query: {str(e)}", "danger")
+                return redirect(url_for('query'))
 
         flash("Please upload a valid file for query.", "danger")
     return render_template('query.html')
