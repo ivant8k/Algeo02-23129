@@ -1,8 +1,0 @@
-audio_file       pic_name
-file1.midi       ame.jpg
-file2.midi       asuna.jpg
-file3.midi       chisato.jpg
-file4.midi       mashiron.jpg
-file5.midi       megumin.jpg
-file6.midi       tomoyo.jpg
-file7.midi       tomoyo2.jpg
