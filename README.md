@@ -3,51 +3,85 @@ Program yang dijalankan dengan python untuk melihat hasil analisis kesamaan quer
 
 ## File Structure
 ```
-
-Algeo02-23129/ (repository)
-├── bin/
-├── doc/
-├── src/
-│   ├── backend/
-│   │   ├── audio/
-│   │   │   ├── mir/
-│   │   │   │   ├── audio.py
-│   │   │   │   ├── vector.py
-│   │   │   │   └── windowing.py
-│   │   │   └── utility/
-│   │   │       └── input.py
-│   │   ├── main_audio.py
-│   │   └── image/
-│   │       └── imgtools.py
-│   ├── frontend/
-│   │   ├── static/
-│   │   │   ├── css/
-│   │   │   │   └── style.css
-│   │   │   └── js/
-│   │   │       └── script.js
-│   │   └── templates/
-│   │       ├── base.html
-│   │       ├── home.html
-│   │       ├── query.html
-│   │       ├── result.html
-│   │       └── upload.html
-│   ├── app.py
-│   └── requirements.txt
-├── test/
-├── uploads/
-│   ├── audios/audiodata/ (tempat storage dataset yang diupload)
-│   │   ├── file_dataset1.midi
-│   │   └── file_dataset2.midi
-│   ├── images/imgdata/ (tempat storage dataset yang diupload)
-│   │   ├── file_dataset1.jpg
-│   │   └── file_dataset2.jpg
-│   ├── mapper/ (tempat storage mapper yang diupload, bisa json atau txt)
-│   │   ├── contoh_mapper.json
-│   │   └── contohLain_mapper.txt
-│   └── query/(tempat storage query image atau audio yang ingin dicocokkan dengan dataset)
-│       ├── dataUji_gambar.jpg
-│       └── dataUji_suara.midi
-└── README.md
+Algeo02-23129
+│   README.md
+│
+├───.vscode
+│       settings.json
+│
+├───doc
+│       dummy.txt
+│
+├───src
+│   │   app.py
+│   │   main.py
+│   │   requirement.txt
+│   │
+│   ├───backend
+│   │   │   generate_mapper.py
+│   │   │
+│   │   ├───audio
+│   │   │   │   main_audio.py
+│   │   │   │
+│   │   │   ├───mir
+│   │   │   │       audio.py
+│   │   │   │       vector.py
+│   │   │   │       windowing.py
+│   │   │   │
+│   │   │   └───utility
+│   │   │           input.py
+│   │   │
+│   │   └───image
+│   │           imgtools.py
+│   │           tes.py
+│   │
+│   └───frontend
+│       ├───static
+│       │   ├───css
+│       │   │       styles.css
+│       │   │
+│       │   ├───js
+│       │   │       script.js
+│       │   │
+│       │   └───uploads
+│       │       ├───audios
+│       │       ├───images
+│       │       ├───mapper
+│       │       └───query
+│       └───templates
+│               base.html
+│               home.html
+│               query.html
+│               result.html
+│               upload.html
+│
+└───test
+    │   audiodata.rar
+    │   audiodata.zip
+    │   imgdata.rar
+    │   imgdata.zip
+    │   mapper.json
+    │   mapper.txt
+    │   mapper_test.json
+    │   mapper_test.txt
+    │
+    ├───audiodata
+    │       file1.midi
+    │       file2.midi
+    │       file3.midi
+    │       file4.midi
+    │       file5.midi
+    │       file6.midi
+    │       file7.midi
+    │
+    └───imgdata
+            ame.jpg
+            asuna.jpg
+            chisato.jpg
+            mashiron.jpg
+            megumin.jpg
+            tomoyo.jpg
+            tomoyo2.jpg
 
 ```
 
