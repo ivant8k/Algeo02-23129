@@ -128,7 +128,7 @@ Algeo02-23129
 3. Change directory by typing 'cd src'
 5. Install Requirement by typing 'pip install -r requirement.txt'
 6. Ensure Python is installed
-7. type 'python main.py' in terminal
+7. type 'python app.py' in terminal
 
 
 
