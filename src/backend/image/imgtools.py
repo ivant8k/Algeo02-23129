@@ -7,21 +7,28 @@ import json
 #import matplotlib.pyplot as plt
 def load_mapper(mapper_path):
     """
-    Fungsi untuk memuat mapper dari file JSON atau TXT.
+    Muat mapper dari file JSON atau TXT.
     """
+    if not os.path.exists(mapper_path):
+        raise FileNotFoundError(f"Mapper file not found: {mapper_path}")
+    
     if mapper_path.endswith('.json'):
+        # Memuat file mapper JSON
         with open(mapper_path, 'r') as f:
-            mapper = json.load(f)
+            mapper_data = json.load(f)
+        # Gunakan hanya basename untuk mencocokkan file
+        return {os.path.basename(item['audio_file']): os.path.basename(item['pic_name']) for item in mapper_data}
     elif mapper_path.endswith('.txt'):
-        mapper = {}
+        # Memuat file mapper TXT
         with open(mapper_path, 'r') as f:
             lines = f.readlines()
-            for line in lines[1:]:  # Skip header
-                audio, pic = line.strip().split()
-                mapper[pic] = audio
+        mapper_data = {}
+        for line in lines[1:]:  # Abaikan header
+            audio_file, pic_name = line.strip().split()
+            mapper_data[os.path.basename(audio_file)] = os.path.basename(pic_name)
+        return mapper_data
     else:
-        raise ValueError("Unsupported mapper file format. Use .json or .txt.")
-    return mapper
+        raise ValueError("Unsupported mapper format. Use JSON or TXT.")
 # =====================================================================
 # STEP 1: Image Processing and Loading
 # =====================================================================
@@ -83,6 +90,7 @@ def grayscale_to_1d_vector(grayscale_matrix):
 
 # Fungsi untuk memuat semua gambar dari folder dataset
 # Output: Daftar tuple (gambar asli, matriks grayscale yang telah di-resize)
+'''
 def load_images_from_folder(folder, size):
     images = []
     for filename in os.listdir(folder):
@@ -93,7 +101,22 @@ def load_images_from_folder(folder, size):
             resized_matrix = resize_image_manual(grayscale_matrix, size[0], size[1])
             images.append((img, resized_matrix))
     return images
-
+'''
+def load_images_from_folder(folder, size):
+    images = []
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        if os.path.isfile(file_path):  # Pastikan hanya file yang diproses
+            try:
+                print(f"Processing image file: {file_path}")
+                img = Image.open(file_path)  # Load gambar
+                # Ubah menjadi grayscale, resize, lalu tambahkan ke list
+                grayscale_matrix = rgbToGrayscale(img)
+                resized_matrix = resize_image_manual(grayscale_matrix, size[0], size[1])
+                images.append((img, resized_matrix))
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")  # Log file yang gagal diproses
+    return images
 # =====================================================================
 # STEP 2: Data Centering (Standardization)
 # =====================================================================
@@ -133,7 +156,7 @@ def standardize_images(images, pixel_averages):
 # =====================================================================
 # STEP 3: PCA Computation Using SVD
 # =====================================================================
-
+'''
 # Fungsi untuk menghitung transpose matriks secara manual
 def transpose(Mtx):
     h = len(Mtx)  # Jumlah baris
@@ -150,6 +173,12 @@ def hitung_kovarian(data):
     N = len(data)  # Jumlah sampel
     transposed_data = transpose(data)
     cov_matrix = np.dot(transposed_data, data) / N  # Matriks kovarian
+    return cov_matrix
+'''
+def hitung_kovarian(data):
+    N = len(data)
+    data_np = np.array(data)
+    cov_matrix = np.dot(data_np.T, data_np) / N
     return cov_matrix
 '''
 # Fungsi untuk menghitung eigenvalue dan eigenvector secara iteratif
@@ -238,69 +267,89 @@ def sort_by_distance(distances):
 #MAPPER_PATH = "test/mapper.json"
 
 # Fungsi untuk memproses query gambar dengan PCA
-def process_image_query(query_image_path, dataset_folder, image_size, k):
+def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_path):
     """
-    Proses query gambar menggunakan PCA.
-
+    Proses query gambar menggunakan PCA dengan perhitungan similarity.
     Parameters:
     - query_image_path: str, path gambar query.
     - dataset_folder: str, folder dataset gambar.
     - image_size: tuple, ukuran gambar (width, height).
     - k: int, jumlah komponen utama PCA.
-
     Returns:
-    - result: list of dict, hasil query berupa gambar mirip dan jaraknya.
+    - result: list of dict, hasil query berupa gambar mirip dan similarity.
     - execution_time: float, waktu eksekusi dalam milidetik.
     """
-    # Mulai timer
     start_time = time.time()
-
-    # Load dataset gambar
+    
+    mapper = load_mapper(mapper_path)
+    print("Mapper loaded:", mapper) 
+    
+    reversed_mapper = {v: k for k, v in mapper.items()}
+    print("Debug: Reversed Mapper for PCA:", reversed_mapper)  
+    
     images = load_images_from_folder(dataset_folder, image_size)
     print(f"Loaded {len(images)} images.")
+    
     pixel_averages = calculate_pixel_averages(images)
     print("Pixel averages calculated.")
+    
     standardized_images = standardize_images(images, pixel_averages)
     print("Images standardized.")
+    
     cov_matrix = hitung_kovarian(standardized_images)
     print("Covariance matrix calculated.")
+    
     Uk = calculate_svd(cov_matrix, k)
     print("SVD calculated.")
-    Z = np.dot(standardized_images, Uk)  # Proyeksikan dataset
+    
+    Z = np.dot(standardized_images, Uk)
     print("Data projected onto principal components.")
-
-    # Proses query image
+    
     query_img, q = project_query_image(query_image_path, pixel_averages, Uk, image_size)
     print("Query image projected.")
+    
     distances = calculate_euclidean_distances(q, Z)
     sorted_distances = sort_by_distance(distances)
     print("Distances calculated and sorted.")
-
-    # Ambil hasil dengan threshold (misalnya 80% terdekat)
-    threshold_distance = np.percentile([d for _, d in sorted_distances], 10)
-    similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
-
-    # Format hasil
-    '''
+    
+    # Get threshold distance for top 50%
+    threshold_distance = np.percentile([d for _, d in sorted_distances], 45)
+    
+    # Get min and max distances for filtered results
+    filtered_distances = [(i, d) for i, d in sorted_distances if d <= threshold_distance]
+    min_filtered_distance = min(d for _, d in filtered_distances)
+    max_filtered_distance = max(d for _, d in filtered_distances)
+    
+    def calculate_similarity(distance):
+        """Calculate similarity with range 50-100 for filtered results"""
+        if distance < 1e-10:  # Exact match
+            return 100.0
+            
+        # Scale similarity to range 55-100 for filtered results
+        normalized = (distance - min_filtered_distance) / (max_filtered_distance - min_filtered_distance)
+        similarity = 100 - (normalized * 45)
+        return round(similarity, 2)
+    
     result = []
-    for idx in similar_images_indices:
-        result.append({
-            "image_index": idx,
-            "distance": sorted_distances[idx][1],
-            "filename": os.listdir(dataset_folder)[idx]
-        })
-    '''
-    result = []
-    for idx in similar_images_indices:
-        image_filename = os.listdir(dataset_folder)[idx]
-        result.append({
-            "image_index": idx,
-            "distance": sorted_distances[idx][1],
-            "filename": image_filename,
-            "audio": mapper.get(image_filename, "Unknown")  # Cari audio di mapper
-        })
-    # Hitung waktu eksekusi
-    execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
+    filenames = os.listdir(dataset_folder)
+    
+    for idx, distance in sorted_distances:
+        if distance <= threshold_distance:  # Only include top 50%
+            similarity = calculate_similarity(distance)
+            image_filename = filenames[idx]
+            
+            result.append({
+                "filename": image_filename,
+                "distance": distance,
+                "similarity": similarity,
+                "image_path": f"/static/uploads/images/{image_filename}",
+                "audio": reversed_mapper.get(os.path.basename(image_filename), "Unknown")
+            })
+    
+    result.sort(key=lambda x: x['similarity'], reverse=True)
+    
+    print(f"Debug: PCA Results with Similarity - {result}")
+    execution_time = (time.time() - start_time) * 1000
     return result, execution_time
 '''
 def test_process_image_query():

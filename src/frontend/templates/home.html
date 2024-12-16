@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="home">
+    <h2>Welcome to the Information Retrieval System</h2>
+    <p>Upload your datasets and perform queries to find similar images or audio files.</p>
+    <div class="buttons">
+        <a href="{{ url_for('upload') }}" class="btn">Upload Dataset</a>
+        <a href="{{ url_for('query') }}" class="btn">Start Query</a>
+    </div>
+</section>
+{% endblock %}

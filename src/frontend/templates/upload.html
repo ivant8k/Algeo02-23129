@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Upload Dataset{% endblock %}
+{% block content %}
+<section class="upload">
+    <h2>Upload Dataset</h2>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <label for="image_dataset">Upload Image Dataset:</label>
+        <input type="file" name="image_dataset" id="image_dataset" multiple required>
+        <br>
+        <label for="audio_dataset">Upload Audio Dataset:</label>
+        <input type="file" name="audio_dataset" id="audio_dataset" multiple required>
+        <br>
+        <label for="mapper">Upload Mapper:</label>
+        <input type="file" name="mapper" id="mapper" accept=".json,.txt" required>
+        <br>
+        <button type="submit">Submit</button>
+    </form>      
+    {% if success %}
+        <p class="success">Dataset uploaded successfully!</p>
+    {% elif error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,131 +1,80 @@
 import os
-from mir.audio import *
-from utility.input import *
+from decimal import Decimal
+from backend.audio.mir.audio import Audio
+from backend.image.imgtools import load_mapper
 
-def audioMain(fileTestName:str) -> dict[str,Decimal]:
-    '''Main Function untuk mencari similaritas audio'''
-    
-    # Path ke folder yang ingin diakses
-    folderDataset = "./data/dataset/"
-    folderTest = "./data/test/"
-    fileTest = fileTestName
+def process_audio_query(test_file_path, dataset_folder, mapper_path=None, tuning_values=None):
+    """
+    Proses query audio untuk mencari similaritas dengan dataset.
 
-    # Menyimpan similarity values
-    similarityKeys = []
-    similarityItems = []
-    similarity = {}
-    tuningValues = [20, 40, 40]
-    # tuningValues = [40, 30, 30]
+    Parameters:
+    - test_file_path: str, path file audio query.
+    - dataset_folder: str, folder dataset audio.
+    - mapper_path: str, path ke file mapper (opsional).
+    - tuning_values: list[int], bobot untuk ATB, RTB, FTB (default: [20, 40, 40]).
 
-    # Buka file audio uji
-    audioTest = Audio(folderTest+fileTest)
-    windowSize = audioTest.size
-    windowStep = audioTest.step
+    Returns:
+    - result: list of dict, hasil query berupa audio mirip dan gambar terkait.
+    - execution_time: float, waktu eksekusi dalam milidetik.
+    """
+    import time
 
-    # Sederhanakan audioTest
-    temp = audioTest.beats[len(audioTest.beats)//2+1]
-    audioTest.beats = [temp]
-    
-    # Iterasi setiap file dalam folder dataset
-    for fileDataset in os.listdir(folderDataset):
-        # Buka file audio dataset
-        audioDataset = Audio(folderDataset+fileDataset, windowSize, windowStep)
+    if tuning_values is None:
+        tuning_values = [20, 40, 40]  # Bobot default
 
-        # Mencari similaritas
-        similarityValue = audioTest.compare(audioDataset, tuningValues, False)
-        if similarityItems == []:
-            similarityKeys.append(fileDataset)
-            similarityItems.append(similarityValue)
-        else:
-            i = 0
-            while i < len(similarityKeys):
-                if similarityItems[i] <= similarityValue:
-                    similarityKeys.insert(i, fileDataset)
-                    similarityItems.insert(i, similarityValue)
-                    break
-                elif i == len(similarityItems)-1:
-                    similarityKeys.append(fileDataset)
-                    similarityItems.append(similarityValue)
-                    break
-                i += 1
+    # Mulai timer
+    start_time = time.time()
 
-    # Ranking
-    similarity = {i:j for i,j in zip(similarityKeys, similarityItems)}
+    # Pastikan file query ada
+    if not os.path.isfile(test_file_path):
+        raise FileNotFoundError(f"Query file tidak ditemukan: {test_file_path}")
 
-    # output
-    return similarity
+    # Pastikan folder dataset ada
+    if not os.path.isdir(dataset_folder):
+        raise FileNotFoundError(f"Folder dataset tidak ditemukan: {dataset_folder}")
 
-def audioMainCLI():
-    '''Main Procedure untuk mencari similaritas audio dengan I/O pada CLI'''
-    os.system('cls')
-
-    # Path ke folder yang ingin diakses
-    folderDataset = "./data/dataset/"
-    folderTest = "./data/test/"
-    fileTest = input("\nMasukkan nama file: ")
-
-    # Menyimpan similarity values
-    similarityKeys = []
-    similarityItems = []
-    similarity = {}
-    tuningValues = [20, 40, 40]
-    # tuningValues = [40, 30, 30]
+    # Muat mapper
+    mapper = load_mapper(mapper_path) if mapper_path else {}
 
     # Buka file audio uji
-    print("\nMelakukan proses audio uji.")
-    audioTest = Audio(folderTest+fileTest)
-    windowSize = audioTest.size
-    windowStep = audioTest.step
+    audio_test = Audio(test_file_path)
+    window_size = audio_test.size
+    window_step = audio_test.step
 
-    print("Proses audio uji berhasil.")
-    print(f"# size  : {windowSize}")
-    print(f"# step  : {windowStep}")
-    print(f"# count : {len(audioTest.beats)}")
-
-    # Sederhanakan audioTest
-    temp = audioTest.beats[len(audioTest.beats)//2+1]
-    audioTest.beats = [temp]
-    print("Audio uji disederhanakan dengan diambil 1 window saja.")
+    # Sederhanakan audio uji dengan mengambil 1 window saja
+    audio_test.beats = [audio_test.beats[len(audio_test.beats) // 2 + 1]]
 
     # Iterasi setiap file dalam folder dataset
-    for fileDataset in os.listdir(folderDataset):
+    similarity_results = []
+    for file_dataset in os.listdir(dataset_folder):
+        dataset_file_path = os.path.join(dataset_folder, file_dataset)
+
+        # Pastikan file dataset adalah file valid
+        if not os.path.isfile(dataset_file_path):
+            print(f"Skipping non-file entry: {dataset_file_path}")
+            continue
+        print(f"Processing audio file: {dataset_file_path}")
         # Buka file audio dataset
-        print(f"\nMelakukan proses audio dataset: {fileDataset}")
-        audioDataset = Audio(folderDataset+fileDataset, windowSize, windowStep)
-        print(f"# count : {len(audioDataset.beats)}")
+        audio_dataset = Audio(dataset_file_path, window_size, window_step)
 
         # Mencari similaritas
-        similarityValue = audioTest.compare(audioDataset, tuningValues, True)
-        if similarityItems == []:
-            similarityKeys.append(fileDataset)
-            similarityItems.append(similarityValue)
-        else:
-            i = 0
-            while i < len(similarityKeys):
-                if similarityItems[i] <= similarityValue:
-                    similarityKeys.insert(i, fileDataset)
-                    similarityItems.insert(i, similarityValue)
-                    break
-                elif i == len(similarityItems)-1:
-                    similarityKeys.append(fileDataset)
-                    similarityItems.append(similarityValue)
-                    break
-                i += 1
+        similarity_value = audio_test.compare(audio_dataset, tuning_values, cli=False)
 
-        print("Proses audio dataset berhasil.")
-        print(f"# similarity: {similarityValue*100:.2f} %")
+        # Tambahkan hasil ke list
+        similarity_results.append({
+            "filename": file_dataset,  # Nama file audio (sama seperti PCA, ganti "audio" menjadi "filename")
+            "similarity": similarity_value * 100,  # Similaritas dalam persen
+            "image_path": f"/static/uploads/images/{mapper.get(os.path.basename(file_dataset), 'Unknown')}",  # Path gambar terkait
+            "audio": file_dataset  # Nama file audio
+        })
 
-    # Ranking
-    similarity = {i:j for i,j in zip(similarityKeys, similarityItems)}
+        print(f"Debug: Audio Query Result - Audio: {file_dataset}, Image: {mapper.get(os.path.basename(file_dataset), 'Unknown')}")
 
-    # output
-    print("\nSimilarity Results:")
-    rank = 1
-    for key in similarity.keys():
-        print(f"{rank}. {key:12}: {(similarity.get(key)*100):.2f} %")
-        rank += 1
-    input()
+        print(f"Debug: Mapper Match for {file_dataset}: {mapper.get(os.path.basename(file_dataset), 'No image available')}")
+    # Urutkan hasil berdasarkan similaritas tertinggi
+    similarity_results.sort(key=lambda x: x["similarity"], reverse=True)
 
+    # Hitung waktu eksekusi
+    execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
 
-# Run CLI program
-audioMainCLI()
+    return similarity_results, execution_time

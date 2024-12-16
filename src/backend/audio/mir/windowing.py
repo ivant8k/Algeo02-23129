@@ -1,7 +1,8 @@
 import numpy as np
 
-from mir.vector import *
-
+#from mir.vector import *
+from backend.audio.mir.vector import Vector
+from decimal import Decimal
 class Windowing:
     
     # ===== Atribut ===== #

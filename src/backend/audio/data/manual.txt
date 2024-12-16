@@ -1,2 +1,0 @@
-Copy Paste audio yang ingin dijadikan dataset ke folder dataset
-serta audio yang ingin diuji ke folder test.

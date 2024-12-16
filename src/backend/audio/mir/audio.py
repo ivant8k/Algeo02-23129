@@ -1,6 +1,8 @@
 import mido
 
-from mir.windowing import *
+# from mir.windowing import *
+from decimal import Decimal
+from backend.audio.mir.windowing import Windowing
 
 class Audio:
 

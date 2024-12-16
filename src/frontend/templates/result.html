@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            text-align: center;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        img {
+            display: block;
+            margin: 10px auto;
+        }
+        .search-bar {
+            text-align: center;
+            margin: 20px;
+        }
+        .search-bar input {
+            padding: 0.5rem;
+            font-size: 16px;
+            width: 50%;
+            max-width: 400px;
+        }
+        .search-bar button {
+            padding: 0.5rem;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .search-bar button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <h2>Query Results</h2>
+
+    <!-- Pencarian -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search by image or audio name...">
+        <button onclick="searchResults()">Search</button>
+    </div>
+
+    <ul id="resultList">
+        {% for item in results %}
+        <li>
+            <p><b>Image:</b> {{ item.filename }}</p>
+            {% if item.image_path %}
+            <img src="{{ item.image_path }}" alt="Image for {{ item.filename }}" width="150">
+            {% else %}
+            <p><b>Image:</b> No image available</p>
+            {% endif %}
+            
+            <p><b>Audio:</b> {{ item.audio }}</p>
+            
+            <p><b>Similarity:</b> {{ item.similarity }}%</p>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <p><b>Execution Time:</b> {{ execution_time }} ms</p>
+
+    <script>
+        function searchResults() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let resultsList = document.getElementById("resultList").getElementsByTagName("li");
+
+            for (let i = 0; i < resultsList.length; i++) {
+                let filename = resultsList[i].getElementsByTagName("p")[0].textContent.toLowerCase();
+                let audio = resultsList[i].getElementsByTagName("p")[1].textContent.toLowerCase();
+
+                // Memeriksa apakah kata kunci ada di nama file gambar atau audio
+                if (filename.includes(input) || audio.includes(input)) {
+                    resultsList[i].style.display = "";  // Menampilkan hasil yang cocok
+                } else {
+                    resultsList[i].style.display = "none";  // Menyembunyikan hasil yang tidak cocok
+                }
+            }
+        }
+    </script>
+</body>
+</html>

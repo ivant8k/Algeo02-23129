@@ -15,7 +15,7 @@ class Vector:
         if isinstance(other, Vector):
             if len(self.values) != len(other.values):
                 raise ValueError("Hanya dapat dilakukan pada vektor dengan dimensi yang sama.")
-         
+        
             else:
                 # algorithm
                 hasil = Decimal(0)
