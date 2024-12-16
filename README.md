@@ -4,7 +4,7 @@
   <p align="center">
     <h3> Image Retrieval dan Music Information Retrieval Menggunakan PCA dan Vektor</h3>
     <h4> Pemrosesan Suara dan Gambar dengan Python </h4>
-<br>
+</br>
 </p>
 </div>
 <!-- CONTRIBUTOR -->
@@ -31,8 +31,8 @@
     </table>
   </strong>
 </div>
-## External Links
 
+## External Links
 - [Link Dashboard](https://drive.google.com/drive/u/1/folders/11aaLHQImbyWxkxG-QOCSrIMhUVCzE5SV)
 - [Link Spesifikasi](https://docs.google.com/document/d/13qCaJJtmTyNFSrAvUT6BRVtRclOYFUHCVGsXvg3DU00/edit?tab=t.0)
 - [Link Q&A](https://docs.google.com/spreadsheets/d/1iPqyP2TCplulUkr8l9OefTeRCqZ09tYKvwhqbZ6Wmp0/edit)
