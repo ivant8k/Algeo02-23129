@@ -1,37 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Query Results</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        h2 {
-            text-align: center;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            border: 1px solid #ddd;
-            margin: 10px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        img {
-            display: block;
-            margin: 10px auto;
-        }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Query Results{% endblock %}
+{% block content %}
+<section class="result">
     <h2>Query Results</h2>
     <ul>
         {% for item in results %}
-        <li>
+        <li class="result-item">
             <p><b>Image:</b> {{ item.filename }}</p>
             {% if item.image_path %}
             <img src="{{ item.image_path }}" alt="Image for {{ item.filename }}" width="150">
@@ -50,5 +24,5 @@
         {% endfor %}
     </ul>
     <p><b>Execution Time:</b> {{ execution_time }} ms</p>
-</body>
-</html>
+</section>
+{% endblock %}

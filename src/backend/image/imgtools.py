@@ -308,9 +308,12 @@ def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_
     sorted_distances = sort_by_distance(distances)
     print("Distances calculated and sorted.")
     # Ambil hasil
+    threshold_distance = np.percentile([d for _, d in sorted_distances], 45)
+    similar_images_indices = [i for i, d in sorted_distances if d <= threshold_distance]
+
     result = []
     filenames = os.listdir(dataset_folder)
-    for idx, distances in sorted_distances[:5]:  # Ambil 5 teratas
+    for idx in similar_images_indices:  # Ambil gambar dengan jarak di bawah threshold
         image_filename = filenames[idx]
         audio_key = mapper.get(os.path.basename(image_filename), "Unknown")
         result.append({
@@ -319,9 +322,9 @@ def process_image_query(query_image_path, dataset_folder, image_size, k, mapper_
             "image_path": f"/static/uploads/images/{image_filename}",
             "audio": reversed_mapper.get(os.path.basename(image_filename), "Unknown")
         })
-    print(f"Debug: Mapper Match for {image_filename}: {reversed_mapper.get(os.path.basename(image_filename), 'Unknown')}")
-    print("Debug: PCA Results -", result)
-    # Hitung waktu eksekusi
+
+    print(f"Debug: PCA Results - {result}")
+
     execution_time = (time.time() - start_time) * 1000  # Dalam milidetik
     return result, execution_time
 '''
