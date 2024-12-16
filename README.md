@@ -1,6 +1,44 @@
-# IMAGE & AUDIO INFORMATION RETRIEVAL
-Program yang dijalankan dengan python untuk melihat hasil analisis kesamaan query dengan dataset yang diupload dengan menggunakan metode Principal Component Analysis (PCA) untuk Image Retrieval dan metode Query by Humming untuk music retrieval. 
+<br />
+<div align="center">
+  <h1 align="center">Tugas Besar 2 IF2123 Aljabar Linier dan Geometri</h1>
+  <p align="center">
+    <h3> Image Retrieval dan Music Information Retrieval Menggunakan PCA dan Vektor</h3>
+    <h4> Pemrosesan Suara dan Gambar dengan Python </h4>
+<br>
+</p>
+</div>
+<!-- CONTRIBUTOR -->
+<div align="center" id="contributor">
+  <strong>
+    <h3>Dipersiapkan oleh Kelompok 34 - Para Pencari Cuan</h3>
+    <table align="center">
+      <tr>
+        <td style="text-align: center;">NIM</td>
+        <td style="text-align: center;">Nama</td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">13523129</td>
+        <td style="text-align: center;">Ivant Samuel Silaban</td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">13523143</td>
+        <td style="text-align: center;">Amira Izani</td>
+      </tr>
+      <tr>
+        <td style="text-align: center;">13523144</td>
+        <td style="text-align: center;">Muhamad Nazih Najmudin</td>
+      </tr>
+    </table>
+  </strong>
+</div>
+## External Links
 
+- [Link Dashboard](https://drive.google.com/drive/u/1/folders/11aaLHQImbyWxkxG-QOCSrIMhUVCzE5SV)
+- [Link Spesifikasi](https://docs.google.com/document/d/13qCaJJtmTyNFSrAvUT6BRVtRclOYFUHCVGsXvg3DU00/edit?tab=t.0)
+- [Link Q&A](https://docs.google.com/spreadsheets/d/1iPqyP2TCplulUkr8l9OefTeRCqZ09tYKvwhqbZ6Wmp0/edit)
+- [Link Laporan](https://docs.google.com/document/d/1YJj1k8XfeDNJ3ttfLF_jdIc6GzvQDUkdti78IMzELtw/edit?usp=sharing)
+- [Link Pendataan Tubes](https://docs.google.com/spreadsheets/d/1GOOg01VsOcTdAeCHPfESd8fXE54FxezCpTkzyUoHvKU/edit?usp=drive_link)
+  
 ## File Structure
 ```
 Algeo02-23129
